@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import time
+from pathlib import Path
 from contextlib import contextmanager
 from threading import Lock
 from typing import Optional
@@ -13,6 +14,10 @@ import pandas as pd
 from defeatbeta_api.client.duckdb_conf import Configuration
 from defeatbeta_api.client.hugging_face_client import HuggingFaceClient
 from defeatbeta_api.utils.util import validate_httpfs_cache_directory
+
+from httpcachefs.smart_parquet import SmartParquetReader
+from httpcachefs.smart_parquet.utils import extract_partition_column, extract_sql_url
+
 
 _instance = None
 _lock = Lock()
@@ -39,8 +44,9 @@ class DuckDBClient:
             stream=sys.stdout
         )
         self.logger = logging.getLogger(self.__class__.__name__)
+        self._http_cache_backend = self.config.get_http_cache_backend()
         self._initialize_connection()
-        self._validate_httpfs_cache()
+        self._validate_http_cache()
 
     def _initialize_connection(self) -> None:
         try:
@@ -60,6 +66,12 @@ class DuckDBClient:
         except Exception as e:
             self.logger.error(f"Failed to initialize connection: {str(e)}")
             raise
+
+    def _validate_http_cache(self):
+        if self._http_cache_backend == "cache_httpfs":
+            self._validate_httpfs_cache()
+            return
+        self.logger.info("Using httpcachefs backend; skip cache_httpfs validation")
 
     def _validate_httpfs_cache(self):
         """Validate httpfs cache against remote data; clear cache if outdated.
@@ -121,9 +133,18 @@ class DuckDBClient:
         return None
 
     def _clear_cache(self):
-        """Clear httpfs cache via DuckDB API."""
-        self.query("SELECT cache_httpfs_clear_cache()")
-        self.logger.info("httpfs cache cleared")
+        """Clear configured HTTP cache backend."""
+        if self._http_cache_backend == "cache_httpfs":
+            self.query("SELECT cache_httpfs_clear_cache()")
+            self.logger.info("httpfs cache cleared")
+            return
+
+        cache_root = Path(validate_httpfs_cache_directory())
+        if cache_root.exists():
+            import shutil
+            shutil.rmtree(cache_root, ignore_errors=True)
+        cache_root.mkdir(parents=True, exist_ok=True)
+        self.logger.info("httpcachefs cache cleared")
 
     @contextmanager
     def _get_cursor(self):
@@ -137,16 +158,39 @@ class DuckDBClient:
         self.logger.debug(f"Executing query: {sql}")
         try:
             start_time = time.perf_counter()
-            with self._get_cursor() as cursor:
-                result = cursor.sql(sql).df()
-                end_time = time.perf_counter()
-                duration = end_time - start_time
-                self.logger.debug(
-                    f"Query executed successfully. Rows returned: {len(result)}. Cost: {duration:.2f} seconds.")
-                return result
+            if self._http_cache_backend == "httpcachefs" and self._is_http_sql(sql):
+                result = self._query_with_httpcachefs(sql)
+            else:
+                with self._get_cursor() as cursor:
+                    result = cursor.sql(sql).df()
+            end_time = time.perf_counter()
+            duration = end_time - start_time
+            self.logger.debug(
+                f"Query executed successfully. Rows returned: {len(result)}. Cost: {duration:.2f} seconds.")
+            return result
         except Exception as e:
             self.logger.error(f"Query failed: {str(e)}")
             raise Exception(f"Query failed: {str(e)}")
+
+    @staticmethod
+    def _is_http_sql(sql: str) -> bool:
+        return "http://" in sql.lower() or "https://" in sql.lower()
+
+    def _query_with_httpcachefs(self, sql: str) -> pd.DataFrame:
+        if SmartParquetReader is None:
+            raise RuntimeError("httpcachefs is required for HTTP parquet queries")
+
+        url = extract_sql_url(sql)
+        if not url:
+            with self._get_cursor() as cursor:
+                return cursor.sql(sql).df()
+
+        # Detect partition column from SQL WHERE clause
+        partition_col = extract_partition_column(sql)
+
+        with SmartParquetReader(url, partition_col=partition_col, cache_dir=validate_httpfs_cache_directory(), cache_ttl=50, debug=False) as reader:
+            arrow_result = reader.execute_sql(sql.replace(f"'{url}'", "{url}"), cache_result=True)
+            return arrow_result.to_pandas()
 
     def close(self) -> None:
         if self.connection:

@@ -217,7 +217,7 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['ttm_pe'] = round(result_df['close'] / result_df['tailing_eps'], 2)
+        result_df['ttm_pe'] = round(result_df['close'].astype(float) / result_df['tailing_eps'].astype(float), 2)
 
         result_df = result_df[[
             'price_report_date',
@@ -338,7 +338,7 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['market_cap'] = round(result_df['close'] * result_df['shares_outstanding'], 2)
+        result_df['market_cap'] = round(result_df['close'].astype(float) * result_df['shares_outstanding'].astype(float), 2)
 
         result_df = result_df[[
             'price_report_date',
@@ -377,7 +377,7 @@ class Ticker:
 
         result_df = result_df[result_df['report_date'].notna()]
 
-        result_df['ps_ratio'] = round(result_df['market_capitalization'] / result_df['ttm_total_revenue_usd'], 2)
+        result_df['ps_ratio'] = round(result_df['market_capitalization'].astype(float) / result_df['ttm_total_revenue_usd'].astype(float), 2)
 
         result_df = result_df[[
             'market_cap_report_date',
@@ -419,7 +419,7 @@ class Ticker:
 
         result_df = result_df[result_df['report_date'].notna()]
 
-        result_df['pb_ratio'] = round(result_df['market_capitalization'] / result_df['book_value_of_equity_usd'], 2)
+        result_df['pb_ratio'] = round(result_df['market_capitalization'].astype(float) / result_df['book_value_of_equity_usd'].astype(float), 2)
 
         result_df = result_df[[
             'market_cap_report_date',
@@ -554,7 +554,9 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['book_value_of_equity_usd'] = round(result_df['book_value_of_equity'] / result_df['close'], 2)
+        result_df['book_value_of_equity_usd'] = round(
+            result_df['book_value_of_equity'].astype(float) / result_df['close'].astype(float), 2
+        )
 
         result_df = result_df[[
             'book_value_of_equity_report_date',
@@ -607,7 +609,10 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['ttm_total_revenue_usd'] = round(result_df['ttm_total_revenue'] / result_df['close'], 2)
+        # Convert to float to handle Decimal/float division
+        result_df['ttm_total_revenue_usd'] = round(
+            result_df['ttm_total_revenue'].astype(float) / result_df['close'].astype(float), 2
+        )
 
         result_df = result_df[[
             'ttm_revenue_report_date',
@@ -661,7 +666,9 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['ttm_free_cash_flow_usd'] = round(result_df['ttm_free_cash_flow'] / result_df['close'], 2)
+        result_df['ttm_free_cash_flow_usd'] = round(
+            result_df['ttm_free_cash_flow'].astype(float) / result_df['close'].astype(float), 2
+        )
 
         result_df = result_df[[
             'ttm_fcf_report_date',
@@ -716,7 +723,9 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['ttm_net_income_usd'] = round(result_df['ttm_net_income'] / result_df['close'], 2)
+        result_df['ttm_net_income_usd'] = round(
+            result_df['ttm_net_income'].astype(float) / result_df['close'].astype(float), 2
+        )
 
         result_df = result_df[[
             'ttm_net_income_report_date',
@@ -794,7 +803,7 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['equity_multiplier'] = round(result_df['roe'] / result_df['roa'], 2)
+        result_df['equity_multiplier'] = round(result_df['roe'].astype(float) / result_df['roa'].astype(float), 2)
 
         result_df = result_df[[
             'report_date',
@@ -819,7 +828,7 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['asset_turnover'] = round(result_df['roa'] / result_df['net_margin'], 2)
+        result_df['asset_turnover'] = round(result_df['roa'].astype(float) / result_df['net_margin'].astype(float), 2)
 
         result_df = result_df[[
             'report_date',
@@ -992,9 +1001,9 @@ class Ticker:
             result_df['tax_provision_usd'] / result_df['pretax_income_usd']
         )
 
-        result_df['weight_of_debt'] = round(result_df['total_debt_usd'] / (result_df['total_debt_usd'] + result_df['market_capitalization']), 4)
-        result_df['weight_of_equity'] = round(result_df['market_capitalization'] / (result_df['total_debt_usd'] + result_df['market_capitalization']), 4)
-        result_df['cost_of_debt'] = round(result_df['interest_expense_usd'] / result_df['total_debt_usd'], 4)
+        result_df['weight_of_debt'] = round(result_df['total_debt_usd'].astype(float) / (result_df['total_debt_usd'].astype(float) + result_df['market_capitalization'].astype(float)), 4)
+        result_df['weight_of_equity'] = round(result_df['market_capitalization'].astype(float) / (result_df['total_debt_usd'].astype(float) + result_df['market_capitalization'].astype(float)), 4)
+        result_df['cost_of_debt'] = round(result_df['interest_expense_usd'].astype(float) / result_df['total_debt_usd'].astype(float), 4)
         result_df['cost_of_equity'] = round(result_df['treasure_10y_yield'] + result_df['beta_5y'] * (result_df['sp500_10y_cagr'] - result_df['treasure_10y_yield']), 4)
         result_df['wacc'] = round(
             result_df['weight_of_debt'] * result_df['cost_of_debt'] * (1 - result_df['tax_rate_for_calcs']) +
@@ -1870,7 +1879,7 @@ class Ticker:
                 right_on='report_date',
                 direction='backward'
             )
-            usd_series = (merged_df['ttm_net_income'] / merged_df['close']).round(2)
+            usd_series = (merged_df['ttm_net_income'].astype(float) / merged_df['close'].astype(float)).round(2)
             usd_series.name = f"{symbol}_usd"
 
             usd_columns.append(usd_series)
@@ -1957,7 +1966,7 @@ class Ticker:
                 right_on='report_date',
                 direction='backward'
             )
-            new_cols[f'{symbol}_usd'] = (merged_df['ttm_revenue'] / merged_df['close']).round(2)
+            new_cols[f'{symbol}_usd'] = (merged_df['ttm_revenue'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         ttm_revenue_df = pd.concat([ttm_revenue_df, pd.DataFrame(new_cols)], axis=1)
 
@@ -2038,7 +2047,7 @@ class Ticker:
                 right_on='report_date',
                 direction='backward'
             )
-            new_cols[f'{symbol}_usd'] = (merged_df['bve'] / merged_df['close']).round(2)
+            new_cols[f'{symbol}_usd'] = (merged_df['bve'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         bve_df = pd.concat([bve_df, pd.DataFrame(new_cols)], axis=1)
 
@@ -2109,7 +2118,7 @@ class Ticker:
                 right_on='report_date',
                 direction='backward'
             )
-            new_cols[f'{symbol}_net_income_common_stockholders_usd'] = (merged_df['net_income_common_stockholders'] / merged_df['close']).round(2)
+            new_cols[f'{symbol}_net_income_common_stockholders_usd'] = (merged_df['net_income_common_stockholders'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         net_income_common_stockholders_df = pd.concat([net_income_common_stockholders_df['report_date'] , pd.DataFrame(new_cols)], axis=1)
         net_income_common_stockholders_df['total_net_income_common_stockholders'] = net_income_common_stockholders_df[[col for col in net_income_common_stockholders_df.columns if col != 'report_date']].sum(axis=1, skipna=True)
@@ -2145,7 +2154,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_avg_equity_usd'] = (
-                        merged_df['avg_equity'] / merged_df['close']).round(2)
+                        merged_df['avg_equity'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         avg_equity_df = pd.concat(
             [avg_equity_df['report_date'], pd.DataFrame(new_cols)], axis=1)
@@ -2216,7 +2225,7 @@ class Ticker:
                 right_on='report_date',
                 direction='backward'
             )
-            new_cols[f'{symbol}_net_income_common_stockholders_usd'] = (merged_df['net_income_common_stockholders'] / merged_df['close']).round(2)
+            new_cols[f'{symbol}_net_income_common_stockholders_usd'] = (merged_df['net_income_common_stockholders'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         net_income_common_stockholders_df = pd.concat([net_income_common_stockholders_df['report_date'] , pd.DataFrame(new_cols)], axis=1)
         net_income_common_stockholders_df['total_net_income_common_stockholders'] = net_income_common_stockholders_df[[col for col in net_income_common_stockholders_df.columns if col != 'report_date']].sum(axis=1, skipna=True)
@@ -2252,7 +2261,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_avg_asserts_usd'] = (
-                        merged_df['avg_asserts'] / merged_df['close']).round(2)
+                        merged_df['avg_asserts'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         avg_asserts_df = pd.concat(
             [avg_asserts_df['report_date'], pd.DataFrame(new_cols)], axis=1)
@@ -2294,7 +2303,7 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['industry_equity_multiplier'] = round(result_df['industry_roe'] / result_df['industry_roa'], 2)
+        result_df['industry_equity_multiplier'] = round(result_df['industry_roe'].astype(float) / result_df['industry_roa'].astype(float), 2)
 
         result_df = result_df[[
             'report_date',
@@ -2359,7 +2368,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_gross_profit_usd'] = (
-                    merged_df['gross_profit'] / merged_df['close']).round(2)
+                    merged_df['gross_profit'].astype(float) / merged_df['close'].astype(float)).round(2)
         gross_profit_df = pd.concat(
             [gross_profit_df['report_date'], pd.DataFrame(new_cols)], axis=1)
         gross_profit_df['total_gross_profit'] = gross_profit_df[
@@ -2401,7 +2410,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_revenue_usd'] = (
-                    merged_df['revenue'] / merged_df['close']).round(2)
+                    merged_df['revenue'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         revenue_df = pd.concat(
             [revenue_df['report_date'], pd.DataFrame(new_cols)], axis=1)
@@ -2478,7 +2487,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_ebitda_usd'] = (
-                    merged_df['ebitda'] / merged_df['close']).round(2)
+                    merged_df['ebitda'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         ebitda_df = pd.concat(
             [ebitda_df['report_date'], pd.DataFrame(new_cols)], axis=1)
@@ -2521,7 +2530,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_revenue_usd'] = (
-                    merged_df['revenue'] / merged_df['close']).round(2)
+                    merged_df['revenue'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         revenue_df = pd.concat(
             [revenue_df['report_date'], pd.DataFrame(new_cols)], axis=1)
@@ -2598,7 +2607,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_net_income_usd'] = (
-                    merged_df['net_income_common_stockholders'] / merged_df['close']).round(2)
+                    merged_df['net_income_common_stockholders'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         net_income_df = pd.concat(
             [net_income_df['report_date'], pd.DataFrame(new_cols)], axis=1)
@@ -2641,7 +2650,7 @@ class Ticker:
                 direction='backward'
             )
             new_cols[f'{symbol}_revenue_usd'] = (
-                    merged_df['revenue'] / merged_df['close']).round(2)
+                    merged_df['revenue'].astype(float) / merged_df['close'].astype(float)).round(2)
 
         revenue_df = pd.concat(
             [revenue_df['report_date'], pd.DataFrame(new_cols)], axis=1)
@@ -2683,7 +2692,7 @@ class Ticker:
             direction='backward'
         )
 
-        result_df['industry_asset_turnover'] = round(result_df['industry_roa'] / result_df['industry_net_margin'], 2)
+        result_df['industry_asset_turnover'] = round(result_df['industry_roa'].astype(float) / result_df['industry_net_margin'].astype(float), 2)
 
         result_df = result_df[[
             'report_date',
@@ -2851,9 +2860,12 @@ class Ticker:
     def download_data_performance(self) -> str:
         res = f"-------------- Download Data Performance ---------------"
         res += f"\n"
-        res += self.duckdb_client.query(
-            "SELECT * FROM cache_httpfs_cache_access_info_query()"
-        ).to_string()
+        if getattr(self.duckdb_client, "_http_cache_backend", "cache_httpfs") == "cache_httpfs":
+            res += self.duckdb_client.query(
+                "SELECT * FROM cache_httpfs_cache_access_info_query()"
+            ).to_string()
+        else:
+            res += "httpcachefs backend enabled; detailed cache_httpfs stats are unavailable."
         res += f"\n"
         res += f"--------------------------------------------------------"
         return res

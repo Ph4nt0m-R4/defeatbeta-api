@@ -5,6 +5,7 @@ import platform
 import re
 import tempfile
 from importlib.resources import files
+from pathlib import Path
 from typing import List, Dict, Any
 
 import nltk
@@ -79,10 +80,27 @@ def validate_nltk_directory() -> str:
     return cache_dir
 
 def validate_httpfs_cache_directory() -> str:
-    """Get HTTPFS cache directory: /tmp/defeatbeta/cache/<version>"""
-    cache_dir = os.path.join(_get_defeatbeta_root_dir(), "cache", __version__)
-    os.makedirs(cache_dir, exist_ok=True)
-    return cache_dir
+    """Get HTTPFS cache directory based on backend configuration.
+    
+    If backend is 'httpcachefs': httpcachefs/cache/<version>
+    Otherwise: /tmp/defeatbeta/cache/<version>
+    """
+    # Import here to avoid circular imports
+    from defeatbeta_api.client.duckdb_conf import Configuration
+    
+    config = Configuration()
+    backend = config.get_http_cache_backend()
+    
+    if backend == 'httpcachefs':
+        # Use httpcachefs folder in the project root
+        httpcachefs_dir = Path(__file__).parent.parent.parent / "httpcachefs" / "cache" / __version__
+        httpcachefs_dir.mkdir(parents=True, exist_ok=True)
+        return str(httpcachefs_dir)
+    else:
+        # Use temp directory for cache_httpfs backend
+        cache_dir = os.path.join(_get_defeatbeta_root_dir(), "cache", __version__)
+        os.makedirs(cache_dir, exist_ok=True)
+        return cache_dir
 
 def validate_dcf_directory() -> str:
     """Get DCF output directory: /tmp/defeatbeta/dcf"""
