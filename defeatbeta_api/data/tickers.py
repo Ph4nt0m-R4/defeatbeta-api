@@ -108,6 +108,30 @@ class Tickers:
         """SEC filings for all tickers, combined into a single DataFrame."""
         return self._run_parallel_concat("sec_filing")
 
+    def insider_trades(self, limit: int = None, start_date: str = None) -> pd.DataFrame:
+        """Insider trading transactions (SEC Form 4) for all tickers, combined into a single DataFrame.
+
+        Args:
+            limit: Maximum number of transaction rows to return per ticker.
+                   Defaults to None (return all). Use limit=20 to get the 20 most recent 
+                   transactions per ticker.
+            start_date: ISO date string (``'YYYY-MM-DD'``). Only transactions from this date forward are included.
+                        If None, no date filtering applied.
+
+        Returns:
+            DataFrame with insider trading transactions from all tickers, sorted by 
+            transaction_date (newest first). Columns include: symbol, reporting_owner, 
+            accession_number, filing_date, transaction_date, and others.
+
+        Example:
+            tickers = Tickers(['GOOGL', 'AAPL'])
+            df = tickers.insider_trades()                              # Get all recent trades
+            df = tickers.insider_trades(limit=20)                     # Get 20 most recent per ticker
+            df = tickers.insider_trades(start_date='2026-01-01')      # Get trades since Jan 1
+            df = tickers.insider_trades(limit=10, start_date='2026-01-01')
+        """
+        return self._run_parallel_concat("insider_trades", limit=limit, start_date=start_date)
+
     def news(self) -> Dict[str, News]:
         """Latest news for each ticker.
 

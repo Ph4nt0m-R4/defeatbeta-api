@@ -18,6 +18,7 @@ from defeatbeta_api.data.balance_sheet import BalanceSheet
 from defeatbeta_api.data.finance_item import FinanceItem
 from defeatbeta_api.data.finance_value import FinanceValue
 from defeatbeta_api.data.income_statement import IncomeStatement
+from defeatbeta_api.data.insider_trades import extract_insider_trades_from_df
 from defeatbeta_api.data.news import News
 from defeatbeta_api.data.print_visitor import PrintVisitor
 from defeatbeta_api.data.sql.sql_loader import load_sql
@@ -64,6 +65,37 @@ class Ticker:
         url = self.huggingface_client.get_url_path(stock_sec_filing)
         sql = load_sql("select_sec_filing_by_symbol", ticker=self.ticker, url=url)
         return self.duckdb_client.query(sql)
+
+    def insider_trades(self, limit: int = None, start_date: str = None) -> pd.DataFrame:
+        """
+        Fetches SEC Form 4 filings (insider trading transactions) for this ticker.
+
+        Args:
+            limit: Maximum number of transaction rows to return. 
+                   Defaults to None (return all). Use limit=20 to get the 20 most recent transactions.
+            start_date: ISO date string (``'YYYY-MM-DD'``). Only transactions from this date forward are included.
+                        If None, no date filtering applied.
+
+        Returns:
+            DataFrame with insider trading transactions. Sorted by transaction_date (newest first).
+            Columns: symbol, reporting_owner, accession_number, filing_date, type, security_title, 
+                     transaction_date, transaction_code, transaction_nature, shares, price_per_share, 
+                     acquired_disposed, post_transaction_shares, ownership_type.
+
+        Example:
+            ticker = Ticker('GOOGL')
+            df = ticker.insider_trades()                              # Get all recent trades
+            df = ticker.insider_trades(limit=20)                     # Get 20 most recent transactions
+            df = ticker.insider_trades(start_date='2026-01-01')      # Get trades since Jan 1
+            df = ticker.insider_trades(limit=10, start_date='2026-01-01')
+        """
+        # 1. Get the high-level metadata dataframe from DuckDB/HuggingFace
+        filings_df = self.sec_filing()
+        
+        # 2. Pass it directly to your parser to extract the deep XML data
+        trades_df = extract_insider_trades_from_df(filings_df, limit=limit, start_date=start_date)
+        
+        return trades_df
 
     def officers(self) -> pd.DataFrame:
         return self._query_data(stock_officers)
