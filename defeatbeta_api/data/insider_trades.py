@@ -56,12 +56,22 @@ def parse_form4_xml(cik: str, accession: str):
         cik_no_zero = str(int(cik))
         base_path = f"https://www.sec.gov/Archives/edgar/data/{cik_no_zero}/{accession_clean}"
 
-        time.sleep(0.15) 
-        index_url = f"{base_path}/index.json"
-        r = session.get(index_url)
+        # Fetch index with retry on rate limiting
+        max_retries = 3
+        for attempt in range(max_retries):
+            time.sleep(0.5 + (attempt * 0.5))  # Start at 0.5s, backoff 0.5s per retry
+            index_url = f"{base_path}/index.json"
+            r = session.get(index_url)
 
-        if r.status_code != 200:
-            return None
+            if r.status_code == 429:
+                if attempt < max_retries - 1:
+                    continue
+                else:
+                    return None
+            elif r.status_code != 200:
+                return None
+            else:
+                break  # Success
 
         index_data = r.json()
         files = index_data.get("directory", {}).get("item", [])
@@ -76,12 +86,21 @@ def parse_form4_xml(cik: str, accession: str):
         if not xml_file:
             return None
 
-        time.sleep(0.15) 
-        xml_url = f"{base_path}/{xml_file}"
-        r_xml = session.get(xml_url)
+        # Fetch XML with retry on rate limiting
+        for attempt in range(max_retries):
+            time.sleep(0.5 + (attempt * 0.5))  # Start at 0.5s, backoff 0.5s per retry
+            xml_url = f"{base_path}/{xml_file}"
+            r_xml = session.get(xml_url)
 
-        if r_xml.status_code != 200:
-            return None
+            if r_xml.status_code == 429:
+                if attempt < max_retries - 1:
+                    continue
+                else:
+                    return None
+            elif r_xml.status_code != 200:
+                return None
+            else:
+                break  # Success
 
         root = etree.fromstring(r_xml.content)
         transactions = []
@@ -120,6 +139,9 @@ def extract_insider_trades_from_df(filings_df: pd.DataFrame, limit: int = None, 
     # Filter strictly to Form 4 filings (Insider Trading)
     form4_df = filings_df[filings_df['form_type'] == '4'].copy()
 
+    if form4_df.empty:
+        return pd.DataFrame()
+
     # Sort the filings from NEWEST to OLDEST before parsing
     form4_df['filing_date'] = pd.to_datetime(form4_df['filing_date'], errors='coerce')
     form4_df = form4_df.sort_values(by='filing_date', ascending=False)
@@ -136,6 +158,8 @@ def extract_insider_trades_from_df(filings_df: pd.DataFrame, limit: int = None, 
 
     # Loop through the rows DuckDB gave us
     # We parse ALL relevant filings, then limit rows AFTER processing
+    parsed_count = 0
+    failed_count = 0
     for index, row in form4_df.iterrows():
         symbol = row['symbol']
         cik = str(row['cik'])
@@ -143,7 +167,13 @@ def extract_insider_trades_from_df(filings_df: pd.DataFrame, limit: int = None, 
         
         parsed = parse_form4_xml(cik, accession)
         
-        if parsed and parsed.get("transactions"):
+        if parsed is None:
+            failed_count += 1
+        elif not parsed.get("transactions"):
+            pass
+        else:
+            parsed_count += 1
+            
             for txn in parsed["transactions"]:
                 record = {
                     "symbol": symbol,
