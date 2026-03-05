@@ -14,13 +14,18 @@
 - [10. Stock Historical Equity Multiplier](#10-stock-historical-equity-multiplier)
 - [11. Stock Historical Assert Turnover](#11-stock-historical-assert-turnover)
 - [12. Stock Historical WACC](#12-stock-historical-wacc)
-- [13. Industry Historical TTM PE](#13-industry-historical-ttm-pe)
-- [14. Industry Historical PS Ratio](#14-industry-historical-ps-ratio)
-- [15. Industry Historical PB Ratio](#15-industry-historical-pb-ratio)
-- [16. Industry Historical ROE](#16-industry-historical-roe)
-- [17. Industry Historical ROA](#17-industry-historical-roa)
-- [18. Industry Historical Equity Multiplier](#18-industry-historical-equity-multiplier)
-- [19. Industry Historical Asset Turnover](#19-industry-historical-asset-turnover)
+- [13. Stock Historical Enterprise Value](#13-stock-historical-enterprise-value)
+- [14. Stock Historical Enterprise Value to Revenue (EV/Revenue)](#14-stock-historical-enterprise-value-to-revenue-evrevenue)
+- [15. Stock Historical Enterprise Value to EBITDA (EV/EBITDA)](#15-stock-historical-enterprise-value-to-ebitda-evebitda)
+- [16. Stock Historical Debt to Equity (D/E) Ratio](#16-stock-historical-debt-to-equity-de-ratio)
+- [17. Stock Historical ROCE (Return on Capital Employed)](#17-stock-historical-roce-return-on-capital-employed)
+- [18. Industry Historical TTM PE](#18-industry-historical-ttm-pe)
+- [19. Industry Historical PS Ratio](#19-industry-historical-ps-ratio)
+- [20. Industry Historical PB Ratio](#20-industry-historical-pb-ratio)
+- [21. Industry Historical ROE](#21-industry-historical-roe)
+- [22. Industry Historical ROA](#22-industry-historical-roa)
+- [23. Industry Historical Equity Multiplier](#23-industry-historical-equity-multiplier)
+- [24. Industry Historical Asset Turnover](#24-industry-historical-asset-turnover)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -417,13 +422,149 @@ ticker.wacc()
 65   TSLA  2025-09-19           1.374267e+12            1.0  1.313400e+10    1.313400e+10        86000000.0            86000000.0   1.549000e+09       1.549000e+09   3.590000e+08       3.590000e+08                0.23            2024          0.1107              0.0414     2.07          0.0095            0.9905        0.0065          0.1849  0.1832
 ```
 
-## 13. Industry Historical TTM PE
+## 13. Stock Historical Enterprise Value
 ```markdown
-total_market_cap          = sum of the market cap of all stocks in the industry  
+enterprise_value = market_capitalization + total_debt_usd + minority_interest_usd + preferred_stock_equity_usd - cash_and_cash_equivalents_usd
 
-total_ttm_net_income      = sum of the trailing twelve months (TTM) net income of all stocks in the industry
+where:
+  total_debt_usd                  = total_debt / exchange_to_usd_rate
+  minority_interest_usd           = minority_interest / exchange_to_usd_rate  (0 if not present)
+  preferred_stock_equity_usd      = preferred_stock_equity / exchange_to_usd_rate  (0 if not present)
+  cash_and_cash_equivalents_usd   = cash_and_cash_equivalents / exchange_to_usd_rate
+```
+```python
+ticker.enterprise_value()
+```
+```text
+>>> ticker.enterprise_value()
+      symbol report_date  market_capitalization fiscal_quarter  exchange_to_usd_rate    total_debt  total_debt_usd  minority_interest  minority_interest_usd  preferred_stock_equity  preferred_stock_equity_usd  cash_and_cash_equivalents  cash_and_cash_equivalents_usd  enterprise_value
+7853    MSFT  2026-02-13           2.980053e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      3.013364e+12
+7854    MSFT  2026-02-17           2.946935e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      2.980246e+12
+7855    MSFT  2026-02-18           2.967281e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      3.000592e+12
+7856    MSFT  2026-02-19           2.958816e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      2.992127e+12
+7857    MSFT  2026-02-20           2.949683e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      2.982994e+12
+...      ...         ...                    ...            ...                   ...           ...             ...                ...                    ...                     ...                         ...                        ...                            ...               ...
+7858    MSFT  2026-02-23           2.854932e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      2.888243e+12
+7859    MSFT  2026-02-24           2.888570e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      2.921881e+12
+7860    MSFT  2026-02-25           2.974707e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      3.008018e+12
+7861    MSFT  2026-02-26           2.983024e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      3.016335e+12
+7862    MSFT  2026-02-27           2.916342e+12     2025-12-31                   1.0  5.760700e+10    5.760700e+10                0.0                    0.0                     0.0                         0.0               2.429600e+10                   2.429600e+10      2.949653e+12
+```
 
-industry_pe               = total_market_cap / total_ttm_net_income
+## 14. Stock Historical Enterprise Value to Revenue (EV/Revenue)
+```markdown
+ev_to_revenue = enterprise_value / ttm_revenue_usd
+
+where:
+  enterprise_value  = market_capitalization + total_debt_usd + minority_interest_usd + preferred_stock_equity_usd - cash_and_cash_equivalents_usd
+  ttm_revenue_usd   = trailing twelve months total revenue converted to USD
+```
+```python
+ticker.enterprise_to_revenue()
+```
+```text
+>>> ticker.enterprise_to_revenue()
+    symbol report_date  enterprise_value fiscal_quarter   ttm_revenue  ttm_revenue_usd  ev_to_revenue
+909   MSFT  2026-02-13      3.013364e+12     2025-12-31  3.054530e+11     3.054530e+11           9.87
+910   MSFT  2026-02-17      2.980246e+12     2025-12-31  3.054530e+11     3.054530e+11           9.76
+911   MSFT  2026-02-18      3.000592e+12     2025-12-31  3.054530e+11     3.054530e+11           9.82
+912   MSFT  2026-02-19      2.992127e+12     2025-12-31  3.054530e+11     3.054530e+11           9.80
+913   MSFT  2026-02-20      2.982994e+12     2025-12-31  3.054530e+11     3.054530e+11           9.77
+914   MSFT  2026-02-23      2.888243e+12     2025-12-31  3.054530e+11     3.054530e+11           9.46
+915   MSFT  2026-02-24      2.921881e+12     2025-12-31  3.054530e+11     3.054530e+11           9.57
+916   MSFT  2026-02-25      3.008018e+12     2025-12-31  3.054530e+11     3.054530e+11           9.85
+917   MSFT  2026-02-26      3.016335e+12     2025-12-31  3.054530e+11     3.054530e+11           9.87
+918   MSFT  2026-02-27      2.949653e+12     2025-12-31  3.054530e+11     3.054530e+11           9.66
+```
+
+## 15. Stock Historical Enterprise Value to EBITDA (EV/EBITDA)
+```markdown
+ev_to_ebitda = enterprise_value / ttm_ebitda_usd
+
+where:
+  enterprise_value  = market_capitalization + total_debt_usd + minority_interest_usd + preferred_stock_equity_usd - cash_and_cash_equivalents_usd
+  ttm_ebitda_usd    = trailing twelve months EBITDA converted to USD
+```
+```python
+ticker.enterprise_to_ebitda()
+```
+```text
+>>> ticker.enterprise_to_ebitda()
+    symbol report_date  enterprise_value fiscal_quarter   ttm_ebitda  ttm_ebitda_usd  ev_to_ebitda
+909   MSFT  2026-02-13      3.013364e+12     2025-12-31  1.913850e+11    1.913850e+11         15.75
+910   MSFT  2026-02-17      2.980246e+12     2025-12-31  1.913850e+11    1.913850e+11         15.57
+911   MSFT  2026-02-18      3.000592e+12     2025-12-31  1.913850e+11    1.913850e+11         15.68
+912   MSFT  2026-02-19      2.992127e+12     2025-12-31  1.913850e+11    1.913850e+11         15.63
+913   MSFT  2026-02-20      2.982994e+12     2025-12-31  1.913850e+11    1.913850e+11         15.59
+914   MSFT  2026-02-23      2.888243e+12     2025-12-31  1.913850e+11    1.913850e+11         15.09
+915   MSFT  2026-02-24      2.921881e+12     2025-12-31  1.913850e+11    1.913850e+11         15.27
+916   MSFT  2026-02-25      3.008018e+12     2025-12-31  1.913850e+11    1.913850e+11         15.72
+917   MSFT  2026-02-26      3.016335e+12     2025-12-31  1.913850e+11    1.913850e+11         15.76
+918   MSFT  2026-02-27      2.949653e+12     2025-12-31  1.913850e+11    1.913850e+11         15.41
+```
+
+## 16. Stock Historical Debt to Equity (D/E) Ratio
+```markdown
+debt_to_equity = total_debt / stockholders_equity
+
+Both values are from the quarterly balance sheet in the same currency, so no currency conversion is needed.
+```
+```python
+ticker.debt_to_equity()
+```
+```text
+>>> ticker.debt_to_equity()
+   symbol  report_date    total_debt  stockholders_equity  debt_to_equity
+7    MSFT  2024-09-30  6.147800e+10         2.877230e+11            0.21
+8    MSFT  2024-12-31  6.222400e+10         3.026950e+11            0.21
+9    MSFT  2025-03-31  6.056700e+10         3.218910e+11            0.19
+10   MSFT  2025-06-30  6.058800e+10         3.434790e+11            0.18
+11   MSFT  2025-09-30  6.055600e+10         3.630760e+11            0.17
+12   MSFT  2025-12-31  5.760700e+10         3.908750e+11            0.15
+```
+
+## 17. Stock Historical ROCE (Return on Capital Employed)
+```markdown
+roce = ebit / avg_capital_employed
+
+where:
+  capital_employed     = total_assets - current_liabilities
+  avg_capital_employed = (beginning_capital_employed + ending_capital_employed) / 2
+```
+```python
+ticker.roce()
+```
+```text
+>>> ticker.roce()
+  symbol  report_date          ebit  beginning_capital_employed  ending_capital_employed  avg_capital_employed    roce
+0   MSFT  2023-09-30  2.780900e+10                3.078270e+11             3.209930e+11          3.144100e+11  0.0884
+1   MSFT  2023-12-31  2.743500e+10                3.209930e+11             3.495420e+11          3.352675e+11  0.0818
+2   MSFT  2024-03-31  2.752700e+10                3.495420e+11             3.657500e+11          3.576460e+11  0.0770
+3   MSFT  2024-06-30  2.795100e+10                3.657500e+11             3.868770e+11          3.763135e+11  0.0743
+4   MSFT  2024-09-30  3.085100e+10                3.868770e+11             4.078130e+11          3.973450e+11  0.0776
+5   MSFT  2024-12-31  2.995900e+10                4.078130e+11             4.250160e+11          4.164145e+11  0.0719
+6   MSFT  2025-03-31  3.197100e+10                4.250160e+11             4.484180e+11          4.367170e+11  0.0732
+7   MSFT  2025-06-30  3.323100e+10                4.484180e+11             4.777850e+11          4.631015e+11  0.0718
+8   MSFT  2025-09-30  3.499900e+10                4.777850e+11             5.013550e+11          4.895700e+11  0.0715
+9   MSFT  2025-12-31  4.898200e+10                5.013550e+11             5.352970e+11          5.183260e+11  0.0945
+```
+
+## 18. Industry Historical TTM PE
+```markdown
+Aggregate method (MSCI methodology): industry PE = total paired market cap / total paired TTM net income.
+
+Paired exclusion: a company is included only when BOTH its daily market cap AND its TTM net income
+are available on the same date. Companies with negative TTM net income are also excluded, as they
+would otherwise distort the industry-level ratio.
+
+TTM net income: trailing four consecutive quarters of net_income_common_stockholders, converted to
+USD at the spot FX rate of each fiscal quarter end. Quarterly TTM values are forward-filled to align
+with daily market cap dates via merge_asof (backward).
+
+total_market_cap      = Σ market_cap(i)         for companies where TTM net income > 0 and both values available
+total_ttm_net_income  = Σ ttm_net_income_usd(i) for the same set of companies
+
+industry_pe           = total_market_cap / total_ttm_net_income
 ```
 
 ```python
@@ -447,13 +588,21 @@ ticker.industry_ttm_pe()
 
 ```
 
-## 14. Industry Historical PS Ratio
+## 19. Industry Historical PS Ratio
 ```markdown
-total_market_cap       = sum of the market cap of all stocks in the industry  
+Aggregate method (MSCI methodology): industry PS = total paired market cap / total paired TTM revenue.
 
-total_ttm_revenue      = sum of the trailing twelve months (TTM) revenue of all stocks in the industry
+Paired exclusion: a company is included only when BOTH its daily market cap AND its TTM revenue are
+available on the same date. Revenue is virtually always positive so no sign-based exclusion is applied.
 
-industry_ps_ratio      = total_market_cap / total_ttm_revenue
+TTM revenue: trailing four consecutive quarters of total_revenue, converted to USD at the spot FX
+rate of each fiscal quarter end. Quarterly TTM values are forward-filled to align with daily market
+cap dates via merge_asof (backward).
+
+total_market_cap  = Σ market_cap(i)        for companies where both values available
+total_ttm_revenue = Σ ttm_revenue_usd(i)   for the same set of companies
+
+industry_ps_ratio = total_market_cap / total_ttm_revenue
 ```
 
 ```python
@@ -476,13 +625,22 @@ ticker.industry_ps_ratio()
 [7793 rows x 5 columns]
 ```
 
-## 15. Industry Historical PB Ratio
+## 20. Industry Historical PB Ratio
 ```markdown
-total_market_cap                = sum of the market cap of all stocks in the industry  
+Aggregate method (MSCI methodology): industry PB = total paired market cap / total paired book value of equity.
 
-total_book_value_of_equity      = sum of the book value of equity of all stocks in the industry
+Paired exclusion: a company is included only when BOTH its daily market cap AND its quarterly book
+value of equity (BVE) are available on the same date. Companies with negative BVE are also excluded,
+as negative book value produces a negative PB ratio that cannot be meaningfully interpreted.
 
-industry_pb_ratio               = total_market_cap / total_book_value_of_equity
+BVE: stockholders_equity from the quarterly balance sheet, converted to USD at the spot FX rate of
+each fiscal quarter end. Quarterly BVE values are forward-filled to align with daily market cap
+dates via merge_asof (backward).
+
+total_market_cap  = Σ market_cap(i)  for companies where BVE > 0 and both values available
+total_bve         = Σ bve_usd(i)     for the same set of companies
+
+industry_pb_ratio = total_market_cap / total_bve
 ```
 
 ```python
@@ -505,71 +663,90 @@ ticker.industry_pb_ratio()
 [7793 rows x 5 columns]
 ```
 
-## 16. Industry Historical ROE
+## 21. Industry Historical ROE
 ```markdown
-total_net_income_common_stockholders  
-    = the sum of the net income attributable to common shareholders across all stocks in the industry  
+Aggregate method (Damodaran methodology): industry ROE = total TTM net income / total TTM avg equity.
 
-total_avg_equity  
-    = for each stock, compute the average shareholders' equity  
-        avg_equity(symbol) = (beginning_stockholders_equity + ending_stockholders_equity) / 2  
-      then sum the average equity of all stocks in the industry  
-        total_avg_equity = Σ avg_equity(symbol)
+Paired exclusion: a company is included only when BOTH its TTM net income AND its TTM avg equity are
+available on the same date.
 
-industry_roe  
-    = total_net_income_common_stockholders / total_avg_equity
+TTM net income: trailing four consecutive quarters of net_income_common_stockholders, converted to
+USD at the spot FX rate of each fiscal quarter end.
+
+TTM avg equity: average of stockholders_equity at the start and end of the TTM window (i.e.,
+equity 3 quarters ago and current equity), converted to USD at the spot FX rate of each fiscal
+quarter end.
+
+Date baseline: every month end. Each company's quarterly TTM values are forward-filled to the
+monthly baseline via merge_asof (backward), so companies with different fiscal year ends all
+contribute to every month.
+
+total_ttm_net_income = Σ ttm_net_income_usd(i)  for companies where both values available
+total_avg_equity     = Σ ttm_avg_equity_usd(i)  for the same set of companies
+
+industry_roe         = total_ttm_net_income / total_avg_equity
 ```
 
 ```python
 ticker.industry_roe()
 ```
 ```text
-  report_date            industry  total_net_income_common_stockholders  total_avg_equity  industry_roe
-0  2023-06-30  Auto Manufacturers                         -1.407448e+07      1.547128e+08       -0.0910
-1  2023-09-30  Auto Manufacturers                          1.224270e+10      4.807896e+11        0.0255
-2  2023-12-31  Auto Manufacturers                          1.574871e+10      5.068826e+11        0.0311
-3  2024-03-31  Auto Manufacturers                          8.833054e+09      4.915669e+11        0.0180
-4  2024-06-30  Auto Manufacturers                          1.143964e+10      4.897561e+11        0.0234
-5  2024-09-30  Auto Manufacturers                          6.302880e+09      5.294544e+11        0.0119
-6  2024-12-31  Auto Manufacturers                          1.273238e+10      4.982886e+11        0.0256
-7  2025-03-31  Auto Manufacturers                          4.782458e+09      5.161979e+11        0.0093
-8  2025-06-30  Auto Manufacturers                          5.536484e+09      5.253515e+11        0.0105
-9  2025-09-30  Auto Manufacturers                          7.128733e+09      5.245579e+11        0.0136
+   report_date            industry  total_ttm_net_income  total_avg_equity  industry_roe
+0   2024-03-31  Auto Manufacturers          1.234567e+10      4.915669e+11        0.0251
+1   2024-04-30  Auto Manufacturers          1.234567e+10      4.915669e+11        0.0251
+2   2024-05-31  Auto Manufacturers          1.234567e+10      4.915669e+11        0.0251
+3   2024-06-30  Auto Manufacturers          1.143964e+10      4.897561e+11        0.0234
+4   2024-07-31  Auto Manufacturers          1.143964e+10      4.897561e+11        0.0234
+5   2024-08-31  Auto Manufacturers          1.143964e+10      4.897561e+11        0.0234
+6   2024-09-30  Auto Manufacturers          6.302880e+09      5.294544e+11        0.0119
+7   2024-10-31  Auto Manufacturers          6.302880e+09      5.294544e+11        0.0119
+8   2024-11-30  Auto Manufacturers          6.302880e+09      5.294544e+11        0.0119
+9   2024-12-31  Auto Manufacturers          1.273238e+10      4.982886e+11        0.0256
 ```
 
-## 17. Industry Historical ROA
+## 22. Industry Historical ROA
 ```markdown
-total_net_income_common_stockholders  
-    = the sum of the net income attributable to common shareholders across all stocks in the industry  
+Aggregate method (Damodaran): industry ROA = Σ(TTM net income) / Σ(TTM avg assets), not the mean
+of individual company ROAs. This gives larger companies more weight, consistent with how index
+providers (MSCI, S&P) compute sector-level profitability metrics.
 
-total_avg_asserts  
-    = for each stock, compute the average asserts 
-        avg_asserts(symbol) = (beginning_asserts + ending_asserts) / 2  
-      then sum the average asserts of all stocks in the industry  
-        total_avg_asserts = Σ avg_asserts(symbol)
+Paired exclusion: a company is included only when BOTH its TTM net income AND its TTM avg assets are
+available on the same date.
 
-industry_roa  
-    = total_net_income_common_stockholders / total_avg_asserts
+TTM net income: trailing four consecutive quarters of net_income_common_stockholders, converted to
+USD at the spot FX rate of each fiscal quarter end.
+
+TTM avg assets: average of total_assets at the start and end of the TTM window (i.e., assets
+3 quarters ago and current assets), converted to USD at the spot FX rate of each fiscal quarter end.
+
+Date baseline: every month end. Each company's quarterly TTM values are forward-filled to the
+monthly baseline via merge_asof (backward), so companies with different fiscal year ends all
+contribute to every month.
+
+total_ttm_net_income = Σ ttm_net_income_usd(i)  for companies where both values available
+total_avg_assets     = Σ ttm_avg_assets_usd(i)  for the same set of companies
+
+industry_roa         = total_ttm_net_income / total_avg_assets
 ```
 
 ```python
 ticker.industry_roa()
 ```
 ```text
-  report_date            industry  total_net_income_common_stockholders  total_avg_asserts  industry_roa
-0  2023-06-30  Auto Manufacturers                         -1.407448e+07       2.135580e+08       -0.0659
-1  2023-09-30  Auto Manufacturers                          1.224270e+10       1.461015e+12        0.0084
-2  2023-12-31  Auto Manufacturers                          1.574871e+10       1.539417e+12        0.0102
-3  2024-03-31  Auto Manufacturers                          8.833054e+09       1.531480e+12        0.0058
-4  2024-06-30  Auto Manufacturers                          1.143964e+10       1.537488e+12        0.0074
-5  2024-09-30  Auto Manufacturers                          6.302880e+09       1.648691e+12        0.0038
-6  2024-12-31  Auto Manufacturers                          1.273238e+10       1.581029e+12        0.0081
-7  2025-03-31  Auto Manufacturers                          4.782458e+09       1.641880e+12        0.0029
-8  2025-06-30  Auto Manufacturers                          5.536484e+09       1.678078e+12        0.0033
-9  2025-09-30  Auto Manufacturers                          7.128733e+09       1.685806e+12        0.0042
+   report_date            industry  total_ttm_net_income  total_avg_assets  industry_roa
+0   2024-03-31  Auto Manufacturers          1.234567e+10      1.531480e+12        0.0081
+1   2024-04-30  Auto Manufacturers          1.234567e+10      1.531480e+12        0.0081
+2   2024-05-31  Auto Manufacturers          1.234567e+10      1.531480e+12        0.0081
+3   2024-06-30  Auto Manufacturers          1.143964e+10      1.537488e+12        0.0074
+4   2024-07-31  Auto Manufacturers          1.143964e+10      1.537488e+12        0.0074
+5   2024-08-31  Auto Manufacturers          1.143964e+10      1.537488e+12        0.0074
+6   2024-09-30  Auto Manufacturers          6.302880e+09      1.648691e+12        0.0038
+7   2024-10-31  Auto Manufacturers          6.302880e+09      1.648691e+12        0.0038
+8   2024-11-30  Auto Manufacturers          6.302880e+09      1.648691e+12        0.0038
+9   2024-12-31  Auto Manufacturers          1.273238e+10      1.581029e+12        0.0081
 ```
 
-## 18. Industry Historical Equity Multiplier
+## 23. Industry Historical Equity Multiplier
 ```markdown
 Industry Equity Multiplier = Industry ROE / Industry ROA
 ```
@@ -592,7 +769,7 @@ ticker.industry_equity_multiplier()
 
 ```
 
-## 19. Industry Historical Asset Turnover
+## 24. Industry Historical Asset Turnover
 ```markdown
 Industry Asset Turnover = Industry ROA / Industry Net Margin
 ```
