@@ -19,6 +19,7 @@ from defeatbeta_api.data.finance_item import FinanceItem
 from defeatbeta_api.data.finance_value import FinanceValue
 from defeatbeta_api.data.income_statement import IncomeStatement
 from defeatbeta_api.data.insider_trades import extract_insider_trades_from_df
+from defeatbeta_api.data.insider_trades_cache import InsiderTradesCache
 from defeatbeta_api.data.news import News
 from defeatbeta_api.data.print_visitor import PrintVisitor
 from defeatbeta_api.data.sql.sql_loader import load_sql
@@ -91,10 +92,15 @@ class Ticker:
         """
         # 1. Get the high-level metadata dataframe from DuckDB/HuggingFace
         filings_df = self.sec_filing()
-        
-        # 2. Pass it directly to your parser to extract the deep XML data
-        trades_df = extract_insider_trades_from_df(filings_df, limit=limit, start_date=start_date)
-        
+
+        # 2. Initialise per-ticker disk cache
+        cache = InsiderTradesCache(self.ticker)
+
+        # 3. Pass it directly to your parser to extract the deep XML data
+        trades_df = extract_insider_trades_from_df(
+            filings_df, limit=limit, start_date=start_date, cache=cache
+        )
+
         return trades_df
 
     def officers(self) -> pd.DataFrame:

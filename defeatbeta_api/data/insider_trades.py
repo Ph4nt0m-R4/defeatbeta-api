@@ -123,108 +123,184 @@ def parse_form4_xml(cik: str, accession: str):
         logger.exception("Failed to parse Form 4 XML for accession %s", accession)
         return None
 
-def extract_insider_trades_from_df(filings_df: pd.DataFrame, limit: int = None, start_date: str = None) -> pd.DataFrame:
+def _finalize_df(df: pd.DataFrame, limit: int = None) -> pd.DataFrame:
+    """Apply type conversions, sorting, and optional row limit to a transactions DataFrame."""
+    if df.empty:
+        return df
+
+    # Convert numeric columns to floats
+    for col in ('shares', 'price_per_share', 'post_transaction_shares'):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # Convert date strings to actual datetime objects
+    for col in ('transaction_date', 'filing_date'):
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors='coerce')
+
+    # Sort chronologically: newest first
+    sort_cols = [c for c in ("symbol", "transaction_date", "filing_date") if c in df.columns]
+    ascending = [True if c == "symbol" else False for c in sort_cols]
+    df = df.sort_values(by=sort_cols, ascending=ascending, na_position='last').reset_index(drop=True)
+
+    # Apply the limit to transaction rows (not filings)
+    if limit and limit > 0:
+        df = df.head(limit)
+
+    return df
+
+
+def _parse_accessions(form4_df: pd.DataFrame, accessions_to_parse: set, limit: int = None) -> pd.DataFrame:
+    """Parse SEC Form 4 XML for a specific set of accession numbers.
+
+    Args:
+        form4_df: DataFrame of Form 4 filings (must contain symbol, cik, accession_number, filing_date).
+        accessions_to_parse: Set of accession_number strings to fetch from SEC.
+        limit: Optional cap on transaction rows (for progress display only).
+
+    Returns:
+        DataFrame with the newly parsed transactions (unsorted, raw types).
+    """
+    target_df = form4_df[form4_df['accession_number'].isin(accessions_to_parse)]
+    if target_df.empty:
+        return pd.DataFrame()
+
+    all_records = []
+    for _, row in target_df.iterrows():
+        parsed = parse_form4_xml(str(row['cik']), row['accession_number'])
+
+        if parsed is None or not parsed.get("transactions"):
+            continue
+
+        for txn in parsed["transactions"]:
+            record = {
+                "symbol": row['symbol'],
+                "reporting_owner": parsed["reporting_owner"],
+                "accession_number": row['accession_number'],
+                "filing_date": row['filing_date'],
+                **txn,
+            }
+            all_records.append(record)
+
+            # Progress indicator
+            if limit and limit > 0:
+                sys.stdout.write(f"\rParsing Form 4 filings... ({len(all_records)}/{limit})")
+                sys.stdout.flush()
+                if len(all_records) >= limit:
+                    break
+
+        if limit and limit > 0 and len(all_records) >= limit:
+            break
+
+    if limit and limit > 0:
+        sys.stdout.write("\r" + " " * 60 + "\r")
+        sys.stdout.flush()
+
+    return pd.DataFrame(all_records)
+
+
+def extract_insider_trades_from_df(
+    filings_df: pd.DataFrame,
+    limit: int = None,
+    start_date: str = None,
+    cache=None,
+) -> pd.DataFrame:
     """
     Takes the DataFrame output of Ticker.sec_filing() and extracts the actual Form 4 data.
-    
+
+    When *cache* (an :class:`InsiderTradesCache` instance) is supplied the
+    function will:
+
+    1. Check which accession numbers are already cached.
+    2. Parse only the **new** ones from SEC.
+    3. Merge the results, persist to cache, and return.
+
     Args:
         filings_df: DataFrame from Ticker.sec_filing()
         limit: Maximum number of transaction rows to return (not filings).
-               If None or 0, returns all transactions. Pass a large number to get all filings' transactions.
-        start_date: ISO date string (``'YYYY-MM-DD'``). Only filings on or after this date are included.
-                    If None, no date filtering is applied.
+               If None or 0, returns all transactions.
+        start_date: ISO date string (``'YYYY-MM-DD'``). Only filings on or
+                    after this date are included.
+        cache: Optional :class:`InsiderTradesCache` instance for disk caching.
     """
-    all_records = []
-
-    # Filter strictly to Form 4 filings (Insider Trading)
+    # ── 1. Filter to Form 4 filings ──────────────────────────────────
     form4_df = filings_df[filings_df['form_type'] == '4'].copy()
-
     if form4_df.empty:
         return pd.DataFrame()
 
-    # Sort the filings from NEWEST to OLDEST before parsing
     form4_df['filing_date'] = pd.to_datetime(form4_df['filing_date'], errors='coerce')
     form4_df = form4_df.sort_values(by='filing_date', ascending=False)
-    
-    # Filter by start_date if provided
+
     if start_date:
         start_date_dt = pd.to_datetime(start_date, errors='coerce')
         if pd.notna(start_date_dt):
             form4_df = form4_df[form4_df['filing_date'] >= start_date_dt]
-    
+
     if form4_df.empty:
         logger.info("No Form 4 filings found in the provided DataFrame.")
         return pd.DataFrame()
 
-    # Loop through the rows DuckDB gave us
-    # We parse ALL relevant filings, then limit rows AFTER processing
-    parsed_count = 0
-    failed_count = 0
-    for index, row in form4_df.iterrows():
-        symbol = row['symbol']
-        cik = str(row['cik'])
-        accession = row['accession_number']
-        
-        parsed = parse_form4_xml(cik, accession)
-        
-        if parsed is None:
-            failed_count += 1
-        elif not parsed.get("transactions"):
-            pass
-        else:
-            parsed_count += 1
-            
-            for txn in parsed["transactions"]:
-                record = {
-                    "symbol": symbol,
-                    "reporting_owner": parsed["reporting_owner"],
-                    "accession_number": accession,
-                    "filing_date": row['filing_date'],  # Inject the filing date
-                    **txn
-                }
-                all_records.append(record)
-                
-                # Update progress line in place if limit is specified
-                if limit and limit > 0:
-                    progress_str = f"Parsing Form 4 filings... ({len(all_records)}/{limit})"
-                    sys.stdout.write(f"\r{progress_str}")
-                    sys.stdout.flush()
-                    if len(all_records) >= limit:
-                        break
-            
-            # Break outer loop if we've hit the limit
-            if limit and limit > 0 and len(all_records) >= limit:
-                break
-    
-    # Clear the progress line
-    if limit and limit > 0:
-        sys.stdout.write("\r" + " " * 60 + "\r")  # Clear the line
-        sys.stdout.flush()
+    # Set of accession numbers the caller needs
+    needed_accessions = set(form4_df['accession_number'].unique())
 
-    df = pd.DataFrame(all_records)
-    
-    if not df.empty:
-        # Convert numeric columns to floats
-        df['shares'] = pd.to_numeric(df['shares'], errors='coerce')
-        df['price_per_share'] = pd.to_numeric(df['price_per_share'], errors='coerce')
-        df['post_transaction_shares'] = pd.to_numeric(df['post_transaction_shares'], errors='coerce')
-        
-        # Convert date strings to actual datetime objects
-        df['transaction_date'] = pd.to_datetime(df['transaction_date'], errors='coerce')
-        df['filing_date'] = pd.to_datetime(df['filing_date'], errors='coerce')
-        
-        # Sort chronologically by transaction_date (newest first), then filing_date (newest first)
-        # Handle NaT (Not a Time) values by putting them at the end
-        df = df.sort_values(
-            by=["symbol", "transaction_date", "filing_date"], 
-            ascending=[True, False, False],
-            na_position='last'
-        ).reset_index(drop=True)
-        
-        # Apply the limit to transaction rows (not filings)
-        if limit and limit > 0:
-            df = df.head(limit)
-        
-        logger.info("Parsed %d insider trading transactions", len(df))
-        
-    return df
+    # ── 2. Cache look-up ─────────────────────────────────────────────
+    cached_df = None
+    cached_accessions: set = set()
+
+    if cache is not None:
+        cached_accessions = cache.get_cached_accessions()
+        new_accessions = needed_accessions - cached_accessions
+
+        if not new_accessions:
+            # Full cache hit — everything we need is already on disk
+            cached_df = cache.load()
+            if cached_df is not None:
+                logger.info("Insider-trades cache HIT for %s (%d accessions)",
+                            cache.ticker, len(needed_accessions))
+                # Filter cached data to the requested accession numbers & date range
+                result = cached_df[cached_df['accession_number'].isin(needed_accessions)]
+                return _finalize_df(result, limit)
+            # Cache file corrupted / missing — fall through to full parse
+            new_accessions = needed_accessions
+    else:
+        new_accessions = needed_accessions
+
+    # ── 3. Parse only the new accession numbers from SEC ─────────────
+    logger.info("Parsing %d new Form 4 filing(s) from SEC for %s",
+                len(new_accessions),
+                form4_df['symbol'].iloc[0] if 'symbol' in form4_df.columns else "?")
+
+    new_df = _parse_accessions(form4_df, new_accessions, limit=limit)
+
+    # ── 4. Merge with existing cache ─────────────────────────────────
+    if cache is not None:
+        if cached_df is None:
+            cached_df = cache.load()
+
+        frames = [f for f in (cached_df, new_df) if f is not None and not f.empty]
+        if frames:
+            merged = pd.concat(frames, ignore_index=True)
+            # Deduplicate on accession_number + transaction fields
+            merged = merged.drop_duplicates(
+                subset=[c for c in ('accession_number', 'transaction_date', 'shares',
+                                    'reporting_owner', 'security_title')
+                        if c in merged.columns],
+                keep='last',
+            )
+        else:
+            merged = pd.DataFrame()
+
+        # Persist full merged data (all accessions ever parsed for this ticker)
+        all_parsed = cached_accessions | new_accessions
+        if not merged.empty:
+            cache.save(_finalize_df(merged.copy()), all_parsed)
+
+        # Return only the rows the caller asked for (date-filtered subset)
+        if not merged.empty:
+            result = merged[merged['accession_number'].isin(needed_accessions)]
+        else:
+            result = merged
+        return _finalize_df(result, limit)
+
+    # ── 5. No cache — return parsed data directly ────────────────────
+    return _finalize_df(new_df, limit)
