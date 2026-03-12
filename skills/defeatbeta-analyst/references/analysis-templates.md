@@ -1028,3 +1028,246 @@ After the table, add a brief summary:
 - Overall management tone: [one sentence characterizing the dominant attitude]
 - Key themes (1–3 bullet points on the most significant forward-looking items)
 - ❌ Avoid for unprofitable, highly cyclical, or financial companies
+
+---
+
+## Template 15: Business Understanding
+
+**Trigger phrases**: "explain this company's business", "what does [COMPANY] do", "business model", "how does [COMPANY] make money", "understand the business before investing"
+
+**Prompt**: Explain this company's business in plain language. What problem does it solve, who pays for it, and why do customers choose it over alternatives? Avoid financial jargon.
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_profile
+   → Business summary, sector, industry, country
+3. get_stock_earning_call_transcript (most recent)
+   → Management's own description of the business and competitive positioning
+```
+
+**Output**: 2–3 paragraph plain-language business description covering: what they do, who the customer is, why customers pay, and what would make a customer switch.
+
+---
+
+## Template 16: Revenue Breakdown
+
+**Trigger phrases**: "revenue breakdown", "revenue segments", "where does [COMPANY] make money", "revenue concentration", "segment analysis"
+
+**Prompt**: Break down this company's revenue streams. Which segments are growing, which are slowing, and how dependent is the company on its top products or customers?
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_quarterly_revenue_by_segment (last 3 years)
+   → Segment mix and trend
+3. get_quarterly_revenue_by_geography (last 3 years)
+   → Geographic concentration risk
+4. get_stock_annual_income_statement (last 3 years)
+   → Total revenue context
+```
+
+**Output**: Segment table showing revenue and % of total for each period. Flag any segment >40% of revenue (concentration risk) or any segment declining >10% YoY (structural risk).
+
+---
+
+## Template 17: Industry Context
+
+**Trigger phrases**: "industry analysis", "industry context", "what industry is [COMPANY] in", "market trends for [COMPANY]", "tailwinds headwinds"
+
+**Prompt**: Explain the industry this company operates in. Is the market growing, stable, or shrinking? What long-term trends are tailwinds or headwinds for this business?
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_profile
+   → Industry classification
+3. get_stock_annual_revenue_yoy_growth (last 3 years)
+   → Company revenue growth as proxy for industry positioning
+4. get_industry_ttm_pe (last 3 years)
+   → Market's implied view of industry growth prospects
+```
+
+**Output**: Industry growth assessment (expanding / stable / contracting) with supporting data. List 2–3 structural tailwinds and 2–3 structural headwinds.
+
+---
+
+## Template 18: Competitive Landscape
+
+**Trigger phrases**: "competitive landscape", "competitors", "moat", "pricing power", "competitive advantage", "how does [COMPANY] compare to peers"
+
+**Prompt**: List the main competitors and compare pricing power, product strength, scale, and moat. Highlight where this company clearly wins or clearly lags.
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_profile
+   → Business description, sector
+3. get_industry_quarterly_gross_margin (last 3 years)
+   → Industry pricing power benchmark
+4. get_stock_annual_gross_margin (last 3 years)
+   → Company gross margin vs industry benchmark
+5. get_stock_quarterly_roic (last 3 years)
+   → Capital efficiency as moat indicator
+```
+
+**Output**: Competitive position summary table. Rate the company on: pricing power, scale advantage, switching costs, and capital efficiency — each as Strong / Neutral / Weak vs industry median.
+
+---
+
+## Template 19: Financial Quality
+
+**Trigger phrases**: "financial quality", "financial health", "balance sheet strength", "how strong are the financials", "debt cash flow quality"
+
+**Prompt**: Analyze the financial quality over recent years. Focus on revenue growth consistency, margin trajectory, debt levels, cash flow strength, and capital allocation.
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_annual_revenue_yoy_growth (last 5 years)
+   → Revenue growth consistency
+3. get_stock_annual_gross_margin (last 5 years)
+   → Gross margin trend
+4. get_stock_annual_operating_margin (last 5 years)
+   → Operating leverage trend
+5. get_stock_annual_net_margin (last 5 years)
+   → Bottom-line profitability trend
+6. get_stock_annual_fcf_margin (last 5 years)
+   → Cash conversion quality
+7. get_stock_annual_balance_sheet (last 3 years)
+   → Debt and cash position trend
+8. get_stock_quarterly_roic (last 5 years)
+   → Capital allocation quality
+```
+
+**Output**: Financial quality scorecard. Grade each dimension A/B/C/D: revenue consistency, margin trend, cash conversion, balance sheet health, capital efficiency. Overall grade = average.
+
+---
+
+## Template 20: Risks and Downside
+
+**Trigger phrases**: "risks", "downside risk", "what could go wrong", "risk analysis", "permanent impairment", "risk factors"
+
+**Prompt**: Identify the biggest risks for this company. Include business risks, financial risks, regulatory threats, and factors that could permanently impair the business.
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_annual_balance_sheet (last 3 years)
+   → Financial risk: debt load and cash buffer
+3. get_stock_annual_fcf_margin (last 3 years)
+   → Financial risk: ability to service debt from operations
+4. get_stock_quarterly_debt_to_equity (last 3 years)
+   → Leverage ratio trend
+5. get_stock_earning_call_transcript (most recent 2)
+   → Management's own risk disclosures
+6. get_stock_news (last 30 days)
+   → Current risk events
+```
+
+**Output**: Risk register with 5–8 risks ranked by severity (High / Medium / Low). For each: risk description, early warning signal to monitor, and potential permanent impairment (Yes / No).
+
+---
+
+## Template 21: Management and Execution
+
+**Trigger phrases**: "management team", "management quality", "CEO track record", "how well has management executed", "capital allocation history"
+
+**Prompt**: Assess the management team's track record. How well have they executed historically? How have their decisions affected long-term shareholders?
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_officers
+   → Tenure and background of key executives
+3. get_stock_quarterly_roic (last 5 years)
+   → Capital allocation outcome
+4. get_stock_annual_revenue_yoy_growth (last 5 years)
+   → Execution on growth
+5. get_stock_annual_fcf_margin (last 5 years)
+   → Cash generation under their watch
+6. get_stock_earning_call_transcript (last 4 quarters)
+   → Guidance accuracy: compare past guidance to actual results
+```
+
+**Output**: Management scorecard. Assess: capital allocation quality, guidance reliability, shareholder alignment, and tenure stability. Note any red flags (missed guidance repeatedly, high leverage, declining ROIC).
+
+---
+
+## Template 22: Bull and Bear Scenarios
+
+**Trigger phrases**: "bull case", "bear case", "bull bear scenarios", "upside downside scenarios", "best case worst case"
+
+**Prompt**: Articulate realistic bull and bear scenarios for this stock over the next 3–5 years. Focus on fundamentals, not price targets.
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_annual_revenue_yoy_growth (last 5 years)
+   → Historical growth range as scenario anchor
+3. get_stock_annual_operating_margin (last 5 years)
+   → Margin expansion / contraction range
+4. get_industry_ttm_pe (last 5 years)
+   → Valuation multiple range for exit multiple
+5. get_stock_quarterly_roic (last 5 years)
+   → ROIC trajectory as quality anchor
+```
+
+**Output**: Two-column scenario table (Bull / Bear) covering: revenue growth assumption, operating margin assumption, ROIC trend, and qualitative outcome description. No price targets — fundamentals only.
+
+---
+
+## Template 23: Valuation Framework
+
+**Trigger phrases**: "valuation", "is [STOCK] overvalued", "how to value [COMPANY]", "valuation framework", "what assumptions drive valuation"
+
+**Prompt**: Explain how investors should value this company. What assumptions matter most, and what would justify a higher or lower valuation?
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_ttm_pe (last 5 years)
+   → P/E history vs current
+3. get_stock_ps_ratio (last 5 years)
+   → P/S history vs current
+4. get_stock_pb_ratio (last 5 years)
+   → P/B history vs current
+5. get_industry_ttm_pe (last 5 years)
+   → Industry P/E benchmark
+6. get_industry_ps_ratio (last 5 years)
+   → Industry P/S benchmark
+7. get_stock_wacc (most recent)
+   → Discount rate for intrinsic value work
+8. get_stock_annual_fcf_margin (last 3 years)
+   → FCF yield as valuation anchor
+9. get_stock_annual_revenue_yoy_growth (last 5 years)
+   → Growth rate inputs
+```
+
+**Output**: Valuation summary covering: (1) most appropriate valuation method for this business type, (2) key assumptions that drive value, (3) what would justify a premium vs discount to peers, (4) current implied expectations baked into the price.
+
+---
+
+## Template 24: Long-Term Investment Thesis
+
+**Trigger phrases**: "investment thesis", "long-term thesis", "should I hold [STOCK] long term", "why invest in [COMPANY]", "what must go right"
+
+**Prompt**: Help me form a long-term investment thesis. Summarize why this could be a good investment, what must go right, and what signals would tell me I'm wrong.
+
+**APIs to call**:
+```
+1. get_latest_data_update_date
+2. get_stock_quarterly_roic (last 5 years)
+   → Compounding quality check
+3. get_stock_annual_revenue_yoy_growth (last 5 years)
+   → Growth sustainability check
+4. get_stock_annual_fcf_margin (last 3 years)
+   → Cash generation quality
+5. get_stock_ttm_pe (last 3 years)
+   → Current valuation context
+```
+
+**Output**: Investment thesis in three sections:
+- **The Case For**: 3–5 bullet points on why this is an attractive investment
+- **What Must Go Right**: 3–5 specific conditions that the bull case depends on
+- **When I'm Wrong**: 3–5 observable signals that would invalidate the thesis (not price drops — fundamental deterioration)
